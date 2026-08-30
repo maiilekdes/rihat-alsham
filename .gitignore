@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.expo/
+.next/
+*.log
+.env
+.env.local
+.DS_Store
+
+# Secrets — never commit these.
+# Firebase service account (full admin access to the project)
+**/serviceAccountKey.json
+**/firebase-adminsdk-*.json
+# Apple Sign in with Apple private key
+*.p8

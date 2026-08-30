@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Rihat Alsham",
+    "slug": "rihasham",
+    "scheme": "rihasham",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "sa.rihasham.app",
+      "usesAppleSignIn": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "نستخدم موقعك لتحديد عنوان التوصيل بدقة.",
+        "NSPhotoLibraryUsageDescription": "لإرسال صورة المبنى أو باب الشقة مع طلبك لتسهيل التوصيل.",
+        "NSCameraUsageDescription": "لالتقاط صورة للمبنى أو باب الشقة وإرسالها مع طلبك."
+      }
+    },
+    "android": {
+      "package": "sa.rihasham.app",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#D92B2B"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO"
+      ]
+    },
+    "plugins": [
+      "expo-localization",
+      "expo-notifications"
+    ],
+    "extra": {
+      "apiUrl": "http://192.168.100.115:4000",
+      "moyasarPublishableKey": "pk_test_177uTSmfGfBWHdNMvSpunQ7Vu1gECUctpwVujf53",
+      "firebase": {
+        "apiKey": "AIzaSyCH4rG23alx4UpDoOxOiNdMu5_Iwbdw3Mc",
+        "authDomain": "rihasham-restaurant.firebaseapp.com",
+        "projectId": "rihasham-restaurant",
+        "storageBucket": "rihasham-restaurant.firebasestorage.app",
+        "messagingSenderId": "514910965480",
+        "appId": "1:514910965480:web:d886aa89f9c5588a49835d"
+      },
+      "eas": {
+        "projectId": "dee5fe37-ffc1-4b17-8ee1-0b2b72aa250e"
+      }
+    },
+    "owner": "malekfit"
+  }
+}

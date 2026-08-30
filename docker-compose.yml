@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rihasham
+      POSTGRES_PASSWORD: rihasham
+      POSTGRES_DB: rihasham
+    ports:
+      - '5432:5432'
+    volumes:
+      - rihasham_pg_data:/var/lib/postgresql/data
+
+volumes:
+  rihasham_pg_data:

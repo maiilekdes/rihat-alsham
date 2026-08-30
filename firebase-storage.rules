@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Production Storage rules for Rihasham.
+//
+// Storage is currently in TEST MODE, which allows any signed-in user to read
+// and write anything — fine while developing, unacceptable at launch.
+// Before going live: Firebase Console → Storage → Rules → paste this → Publish.
+//
+// What these rules enforce:
+//   - only signed-in users can touch anything
+//   - order-chat media lives under order-chat/{orderId}/ and is size/type capped
+//   - nothing else in the bucket is writable at all
+//
+// Note: these rules can't verify that a given user actually owns a given order —
+// Storage rules have no access to our Postgres database. The real ownership
+// check happens server-side when the resulting URL is attached to a message
+// (see packages/api/src/routes/messages.ts, loadAuthorizedOrder). These rules
+// are the outer perimeter: authenticated, size-capped, correct media types.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Delivery-chat photos and videos.
+    match /order-chat/{orderId}/{fileName} {
+      allow read: if request.auth != null;
+
+      allow write: if request.auth != null
+                   && request.resource.size < 25 * 1024 * 1024   // 25 MB cap
+                   && (
+                        request.resource.contentType.matches('image/.*')
+                        || request.resource.contentType.matches('video/.*')
+                      );
+    }
+
+    // Menu item photography, uploaded from the admin dashboard.
+    // Readable by anyone (it's the public menu); writable only by signed-in
+    // users — staff-only enforcement happens in the admin UI and API.
+    match /menu/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Everything else: closed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
