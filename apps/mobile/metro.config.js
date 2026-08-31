@@ -9,7 +9,7 @@ const config = getDefaultConfig(projectRoot);
 // Monorepo wiring: Metro must watch the whole workspace so `@rihasham/shared`
 // (symlinked from packages/shared) is bundled, and it must look in the root
 // node_modules where npm workspaces hoists most dependencies.
-config.watchFolders = [workspaceRoot];
+config.watchFolders = [...(config.watchFolders ?? []), workspaceRoot];
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
