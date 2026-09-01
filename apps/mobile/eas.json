@@ -11,13 +11,15 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
-      },
-      "image": "macos-sequoia-15.6-xcode-26.0"
+        "simulator": false,
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "image": "macos-sequoia-15.6-xcode-26.0"
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.0"
+      }
     }
   },
   "submit": {
