@@ -1,0 +1,40 @@
+# Builds the Next.js admin dashboard from the npm-workspaces monorepo.
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/api/package.json packages/api/
+COPY apps/mobile/package.json apps/mobile/
+COPY apps/admin/package.json apps/admin/
+
+# --ignore-scripts skips the root postinstall (it builds shared before its
+# source is present); shared is built explicitly below.
+RUN npm ci --ignore-scripts --workspace=@rihasham/shared --workspace=@rihasham/admin --include-workspace-root
+
+COPY packages/shared packages/shared
+COPY apps/admin apps/admin
+RUN npm run build --workspace=@rihasham/shared
+
+# NEXT_PUBLIC_* values are inlined at build time, so they must be present here,
+# not only at runtime.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build --workspace=@rihasham/admin
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+
+# `output: standalone` emits the server plus only the modules it actually uses.
+COPY --from=build /app/apps/admin/.next/standalone ./
+COPY --from=build /app/apps/admin/.next/static ./apps/admin/.next/static
+
+EXPOSE 3000
+CMD ["node", "apps/admin/server.js"]
