@@ -9,7 +9,14 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { api } from './src/lib/api';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+  // SDK 54 split the old `shouldShowAlert` into banner + notification-centre list.
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
 });
 
 function PushRegistration() {

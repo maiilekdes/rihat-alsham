@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged, signInWithCredential, linkWithCredential, PhoneAuthProvider, GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, User as FirebaseUser } from 'firebase/auth';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+import { FirebaseRecaptchaVerifierModal } from '../lib/recaptcha';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { auth, firebaseApp } from '../lib/firebase';
@@ -19,7 +19,8 @@ interface AuthContextValue {
   firebaseUser: FirebaseUser | null;
   profile: Profile | null;
   loading: boolean;
-  recaptchaRef: React.RefObject<FirebaseRecaptchaVerifierModal>;
+  // React 19 types a `useRef<T>(null)` as RefObject<T | null>.
+  recaptchaRef: React.RefObject<FirebaseRecaptchaVerifierModal | null>;
   sendOtp: (e164Phone: string) => Promise<string>; // returns verificationId
   confirmOtp: (verificationId: string, code: string) => Promise<void>;
   linkPhone: (verificationId: string, code: string) => Promise<void>;
