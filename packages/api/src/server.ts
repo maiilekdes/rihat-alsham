@@ -52,6 +52,17 @@ app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// Without this the root path returns Express's bare "Cannot GET /", which
+// reads as a broken deployment to anyone checking the URL in a browser.
+app.get('/', (_req, res) =>
+  res.json({
+    service: 'Rihat Alsham API',
+    nameAr: 'ريحة الشام',
+    status: 'running',
+    endpoints: ['/health', '/api/menu', '/api/branches', '/api/promotions'],
+  })
+);
+
 app.use('/api/menu', menuRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);
