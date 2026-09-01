@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { api } from './src/lib/api';
 
 Notifications.setNotificationHandler({
@@ -39,14 +40,16 @@ function PushRegistration() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <CartProvider>
-          <PushRegistration />
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </CartProvider>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <CartProvider>
+            <PushRegistration />
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </CartProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
+import AppLoading from '../components/AppLoading';
 
 import LoginScreen from '../screens/Auth/LoginScreen';
 import OtpScreen from '../screens/Auth/OtpScreen';
@@ -32,7 +33,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
   const { firebaseUser, profile, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) return <AppLoading />;
 
   const needsPhone = firebaseUser && profile && !profile.phoneVerified;
 

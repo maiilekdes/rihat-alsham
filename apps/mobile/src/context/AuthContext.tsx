@@ -55,12 +55,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async (user) => {
+    // Startup must always reach `loading: false`. Anything that leaves it true
+    // — an unreachable API, a Firebase callback that never fires — renders the
+    // app as a blank screen with no way for the user to recover.
+    const failsafe = setTimeout(() => setLoading(false), 20000);
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
-      if (user) await refreshProfile();
-      else setProfile(null);
-      setLoading(false);
+      try {
+        if (user) await refreshProfile();
+        else setProfile(null);
+      } finally {
+        clearTimeout(failsafe);
+        setLoading(false);
+      }
     });
+
+    return () => {
+      clearTimeout(failsafe);
+      unsubscribe();
+    };
   }, []);
 
   // Phone OTP is the primary sign-in path. The reCAPTCHA modal (mounted once
