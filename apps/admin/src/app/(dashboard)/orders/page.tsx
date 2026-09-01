@@ -113,7 +113,13 @@ export default function OrdersPage() {
             </p>
             <ul style={{ margin: '10px 0', paddingInlineStart: 18, fontSize: 13 }}>
               {order.items.map((it, i) => (
-                <li key={i}>{it.quantity}x {it.nameEn}</li>
+                // Arabic leads: the counter and kitchen read Arabic first. The
+                // stored name already carries the chosen size (e.g. "صفيحة - كيلو"),
+                // which is the part that must not get lost.
+                <li key={i} style={{ marginBottom: 4 }}>
+                  <strong style={{ fontSize: 14 }}>{it.quantity}× {it.nameAr}</strong>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-soft)' }}>{it.nameEn}</div>
+                </li>
               ))}
             </ul>
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>

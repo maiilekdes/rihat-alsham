@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 
+interface ItemVariant {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  price: number;
+  calories?: number;
+  isDefault?: boolean;
+}
 interface MenuItem {
   id: string;
   nameAr: string;
@@ -10,6 +18,8 @@ interface MenuItem {
   basePrice: number;
   imageUrl?: string;
   isAvailable: boolean;
+  calories?: number;
+  variants: ItemVariant[];
 }
 interface Category {
   id: string;
@@ -59,7 +69,7 @@ export default function MenuPage() {
               <thead>
                 <tr style={{ textAlign: 'start', background: 'var(--bg)', fontSize: 12 }}>
                   <th style={{ padding: 12 }}>Item</th>
-                  <th style={{ padding: 12 }}>Price (SAR)</th>
+                  <th style={{ padding: 12 }}>Sizes &amp; Prices (SAR)</th>
                   <th style={{ padding: 12 }}>Status</th>
                   <th style={{ padding: 12 }}></th>
                 </tr>
@@ -71,7 +81,33 @@ export default function MenuPage() {
                       <strong>{item.nameEn}</strong>
                       <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{item.nameAr}</div>
                     </td>
-                    <td style={{ padding: 12 }}>{item.basePrice.toFixed(2)}</td>
+                    <td style={{ padding: 12 }}>
+                      {item.variants?.length ? (
+                        // Sizes matter to the counter: "Sfeeha 15" is ambiguous
+                        // where the same dish sells by quarter, half and full kilo.
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {item.variants.map((v) => (
+                            <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 13 }}>
+                                {v.nameAr}
+                                <span style={{ color: 'var(--ink-soft)' }}> · {v.nameEn}</span>
+                              </span>
+                              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{v.price.toFixed(2)}</strong>
+                              {v.calories ? (
+                                <span style={{ fontSize: 11, color: 'var(--brand-orange)' }}>{v.calories} cal</span>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                          <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{item.basePrice.toFixed(2)}</strong>
+                          {item.calories ? (
+                            <span style={{ fontSize: 11, color: 'var(--brand-orange)' }}>{item.calories} cal</span>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: 12 }}>
                       <span className={item.isAvailable ? 'badge badge-completed' : 'badge badge-cancelled'}>
                         {item.isAvailable ? 'In stock' : 'Out of stock'}
