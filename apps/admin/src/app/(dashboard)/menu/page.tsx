@@ -31,6 +31,9 @@ interface Category {
 export default function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftPrice, setDraftPrice] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -52,6 +55,44 @@ export default function MenuPage() {
       }))
     );
     await api.patch(`/api/menu/items/${item.id}/availability`, { isAvailable: !item.isAvailable });
+  }
+
+  // Sizes carry this menu's real prices, so they are edited in place: click a
+  // price, change it, save. No modal, no separate screen.
+  async function saveVariant(variantId: string, patch: Partial<ItemVariant>) {
+    setSavingId(variantId);
+    try {
+      await api.patch(`/api/menu/variants/${variantId}`, patch);
+      setCategories((prev) =>
+        prev.map((c) => ({
+          ...c,
+          items: c.items.map((i) => ({
+            ...i,
+            variants: i.variants?.map((v) => (v.id === variantId ? { ...v, ...patch } : v)) ?? [],
+          })),
+        }))
+      );
+    } finally {
+      setSavingId(null);
+      setEditing(null);
+    }
+  }
+
+  async function addVariant(item: MenuItem) {
+    const nameAr = window.prompt('اسم الحجم بالعربي (e.g. كيلو)');
+    if (!nameAr) return;
+    const nameEn = window.prompt('Size name in English (e.g. One Kilo)') || nameAr;
+    const priceText = window.prompt('Price in SAR');
+    const price = Number(priceText);
+    if (!priceText || Number.isNaN(price)) return;
+    await api.post(`/api/menu/items/${item.id}/variants`, { nameAr, nameEn, price });
+    await load();
+  }
+
+  async function deleteVariant(variant: ItemVariant) {
+    if (!window.confirm(`Remove the size "${variant.nameAr}"? Past orders keep their own record.`)) return;
+    await api.delete(`/api/menu/variants/${variant.id}`);
+    await load();
   }
 
   if (loading) return <p>Loading menu…</p>;
@@ -85,26 +126,116 @@ export default function MenuPage() {
                       {item.variants?.length ? (
                         // Sizes matter to the counter: "Sfeeha 15" is ambiguous
                         // where the same dish sells by quarter, half and full kilo.
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {item.variants.map((v) => (
-                            <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                              <span style={{ fontSize: 13 }}>
+                            <div key={v.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <span style={{ fontSize: 13, minWidth: 150 }}>
                                 {v.nameAr}
                                 <span style={{ color: 'var(--ink-soft)' }}> · {v.nameEn}</span>
                               </span>
-                              <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{v.price.toFixed(2)}</strong>
-                              {v.calories ? (
-                                <span style={{ fontSize: 11, color: 'var(--brand-orange)' }}>{v.calories} cal</span>
-                              ) : null}
+
+                              {editing === v.id ? (
+                                <>
+                                  <input
+                                    className="input"
+                                    style={{ width: 90, padding: '4px 8px', fontVariantNumeric: 'tabular-nums' }}
+                                    value={draftPrice}
+                                    autoFocus
+                                    inputMode="decimal"
+                                    onChange={(e) => setDraftPrice(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const n = Number(draftPrice);
+                                        if (!Number.isNaN(n) && n >= 0) saveVariant(v.id, { price: n });
+                                      }
+                                      if (e.key === 'Escape') setEditing(null);
+                                    }}
+                                  />
+                                  <button
+                                    className="btn"
+                                    style={{ padding: '4px 12px' }}
+                                    disabled={savingId === v.id}
+                                    onClick={() => {
+                                      const n = Number(draftPrice);
+                                      if (!Number.isNaN(n) && n >= 0) saveVariant(v.id, { price: n });
+                                    }}
+                                  >
+                                    {savingId === v.id ? 'Saving…' : 'Save'}
+                                  </button>
+                                  <button className="btn btn-outline" style={{ padding: '4px 12px' }} onClick={() => setEditing(null)}>
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditing(v.id);
+                                      setDraftPrice(String(v.price));
+                                    }}
+                                    title="Click to change this price"
+                                    style={{
+                                      border: '1px solid transparent',
+                                      background: 'transparent',
+                                      cursor: 'pointer',
+                                      font: 'inherit',
+                                      fontWeight: 700,
+                                      fontVariantNumeric: 'tabular-nums',
+                                      padding: '2px 8px',
+                                      borderRadius: 6,
+                                      color: 'var(--ink)',
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                                  >
+                                    {v.price.toFixed(2)}
+                                  </button>
+                                  {v.calories ? (
+                                    <span style={{ fontSize: 11, color: 'var(--brand-orange)' }}>{v.calories} cal</span>
+                                  ) : null}
+                                  {v.isDefault ? (
+                                    <span className="badge badge-completed" style={{ fontSize: 10 }}>default</span>
+                                  ) : (
+                                    <button
+                                      className="btn btn-outline"
+                                      style={{ padding: '2px 8px', fontSize: 11 }}
+                                      onClick={() => saveVariant(v.id, { isDefault: true })}
+                                    >
+                                      Make default
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn btn-outline"
+                                    style={{ padding: '2px 8px', fontSize: 11, color: 'var(--danger)' }}
+                                    onClick={() => deleteVariant(v)}
+                                  >
+                                    Remove
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ))}
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '3px 10px', fontSize: 11, alignSelf: 'flex-start', marginTop: 2 }}
+                            onClick={() => addVariant(item)}
+                          >
+                            + Add size
+                          </button>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{item.basePrice.toFixed(2)}</strong>
                           {item.calories ? (
                             <span style={{ fontSize: 11, color: 'var(--brand-orange)' }}>{item.calories} cal</span>
                           ) : null}
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '2px 10px', fontSize: 11 }}
+                            onClick={() => addVariant(item)}
+                          >
+                            + Add size
+                          </button>
                         </div>
                       )}
                     </td>
