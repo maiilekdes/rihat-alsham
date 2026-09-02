@@ -3,6 +3,8 @@
 
 export const strings = {
   ar: {
+    signInUnavailableTitle: 'غير متاح حالياً',
+    signInUnavailableBody: 'تسجيل الدخول بهذه الطريقة غير مُفعّل بعد. استخدم رقم الجوال.',
     appName: 'ريحة الشام',
     home: 'الرئيسية',
     menu: 'القائمة',
@@ -45,6 +47,8 @@ export const strings = {
     deliveryNotes: 'ملاحظات التوصيل',
   },
   en: {
+    signInUnavailableTitle: 'Not available yet',
+    signInUnavailableBody: 'This sign-in method is not set up yet. Please use your phone number.',
     appName: 'Rihat Alsham',
     home: 'Home',
     menu: 'Menu',

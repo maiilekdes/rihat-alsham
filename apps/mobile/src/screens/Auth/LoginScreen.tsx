@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator,
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Constants from 'expo-constants';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -17,16 +18,27 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Client IDs come from app.json (extra.auth) so they can be filled in without
+  // touching this file. Until they are real, the provider buttons must say so:
+  // sending the user to Google's raw "Error 401: invalid_client" page instead
+  // makes a missing configuration look like a broken app.
+  const authConfig = (Constants.expoConfig?.extra?.auth ?? {}) as {
+    googleWebClientId?: string;
+    googleIosClientId?: string;
+    googleAndroidClientId?: string;
+    facebookAppId?: string;
+  };
+  const isPlaceholder = (v?: string) => !v || v.startsWith('REPLACE_WITH');
+  const googleReady = !isPlaceholder(authConfig.googleIosClientId) || !isPlaceholder(authConfig.googleWebClientId);
+  const facebookReady = !isPlaceholder(authConfig.facebookAppId);
+
   const [, googleResponse, promptGoogle] = Google.useAuthRequest({
-    // Configure these in the Google Cloud console + app.json once available.
-    // NOTE: expo-auth-session's Google provider is deprecated upstream —
-    // before shipping, evaluate migrating to @react-native-google-signin/google-signin.
-    webClientId: 'REPLACE_WITH_WEB_CLIENT_ID',
-    iosClientId: 'REPLACE_WITH_IOS_CLIENT_ID',
-    androidClientId: 'REPLACE_WITH_ANDROID_CLIENT_ID',
+    webClientId: authConfig.googleWebClientId,
+    iosClientId: authConfig.googleIosClientId,
+    androidClientId: authConfig.googleAndroidClientId,
   });
   const [, fbResponse, promptFacebook] = Facebook.useAuthRequest({
-    clientId: 'REPLACE_WITH_FACEBOOK_APP_ID',
+    clientId: authConfig.facebookAppId ?? '',
   });
 
   React.useEffect(() => {
@@ -111,12 +123,26 @@ export default function LoginScreen() {
 
       {/* Google's brand guidelines call for a white button with the
           multicolor "G" mark — never a solid brand-color fill. */}
-      <TouchableOpacity style={styles.googleBtn} onPress={() => promptGoogle()}>
+      <TouchableOpacity
+        style={styles.googleBtn}
+        onPress={() =>
+          googleReady
+            ? promptGoogle()
+            : Alert.alert(t('signInUnavailableTitle'), t('signInUnavailableBody'))
+        }
+      >
         <Text style={styles.googleBtnText}>{t('continueWithGoogle')}</Text>
       </TouchableOpacity>
 
       {/* Facebook's guidelines call for their brand blue (#1877F2) fill with white text. */}
-      <TouchableOpacity style={styles.facebookBtn} onPress={() => promptFacebook()}>
+      <TouchableOpacity
+        style={styles.facebookBtn}
+        onPress={() =>
+          facebookReady
+            ? promptFacebook()
+            : Alert.alert(t('signInUnavailableTitle'), t('signInUnavailableBody'))
+        }
+      >
         <Text style={styles.facebookBtnText}>{t('continueWithFacebook')}</Text>
       </TouchableOpacity>
     </View>
