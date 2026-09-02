@@ -15,6 +15,15 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Firebase JS SDK v10 does not declare a "react-native" export condition on its
+// umbrella subpaths, so with Metro's package-exports resolution (on by default
+// from SDK 53) @firebase/app and @firebase/auth resolve through different
+// entry points and end up as two separate module instances. Auth registers
+// itself on one, the app asks the other, and startup dies with "Component auth
+// has not been registered yet". Falling back to main-field resolution keeps a
+// single instance and still selects @firebase/auth's react-native build.
+config.resolver.unstable_enablePackageExports = false;
+
 // Hierarchical lookup stays ON: npm nests `@firebase/auth` inside
 // node_modules/firebase/node_modules, and only the normal upward walk finds it.
 // The cost is that root node_modules holds React 18.3.1 (for the Next.js admin
