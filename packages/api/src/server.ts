@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import http from 'http';
@@ -60,6 +61,16 @@ app.get('/', (_req, res) =>
     nameAr: 'ريحة الشام',
     status: 'running',
     endpoints: ['/health', '/api/menu', '/api/branches', '/api/promotions'],
+  })
+);
+
+// Dish photography, cropped from the restaurant's own printed menu. Served by
+// the API so images can be added or replaced without shipping a new app build.
+app.use(
+  '/images',
+  express.static(path.join(__dirname, '../public'), {
+    maxAge: '7d',
+    immutable: false,
   })
 );
 

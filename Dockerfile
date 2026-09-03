@@ -33,6 +33,7 @@ COPY --from=build /app/packages/shared/dist packages/shared/dist
 COPY --from=build /app/packages/api/package.json packages/api/package.json
 COPY --from=build /app/packages/api/dist packages/api/dist
 COPY --from=build /app/packages/api/scripts packages/api/scripts
+COPY --from=build /app/packages/api/public packages/api/public
 COPY db db
 
 # Railway/Render inject PORT; server.ts already honours it.
