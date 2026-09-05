@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
+import { pool } from './db/pool';
 import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { firebaseAuth } from './utils/firebase';
@@ -33,8 +35,20 @@ io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) return next(new Error('Missing auth token'));
     const decoded = await firebaseAuth.verifyIdToken(token);
+
+    // The role must come from our own database, never from the handshake.
+    // Anything the client sends is a claim, not a fact: trusting it would let
+    // any signed-in customer join the `admin` room and receive every order,
+    // with the customer's name, phone and address, in real time.
+    const { rows } = await pool.query(
+      `SELECT id, role FROM users WHERE provider_uid = $1`,
+      [decoded.uid]
+    );
+    if (rows.length === 0) return next(new Error('Unknown user'));
+
     (socket.data as any).uid = decoded.uid;
-    (socket.data as any).role = socket.handshake.auth?.role; // set by client after fetching /users/me
+    (socket.data as any).userId = rows[0].id;
+    (socket.data as any).role = rows[0].role;
     next();
   } catch {
     next(new Error('Invalid auth token'));
@@ -42,12 +56,40 @@ io.use(async (socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  const { role, uid } = socket.data as any;
+  const { role, userId } = socket.data as any;
   if (role === 'staff' || role === 'owner') socket.join('admin');
-  if (uid) socket.join(`user:${uid}`);
+  if (userId) socket.join(`user:${userId}`);
 });
 
 app.use(helmet());
+
+// The API is public on the internet. Without a ceiling, a single client can
+// scrape the menu in a loop or hammer order creation, and Railway bills for it.
+// Trust Railway's proxy so limits key off the real client IP, not the router's.
+app.set('trust proxy', 1);
+
+app.use(
+  rateLimit({
+    windowMs: 60_000,
+    limit: 240,               // generous for normal browsing (menu + images)
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please slow down.' },
+  })
+);
+
+// Anything that creates records or moves money gets a much tighter ceiling.
+const writeLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+  // Never throttle Moyasar's payment callback: dropping one loses a real
+  // payment's confirmation, and it is already safe — it ignores the caller and
+  // re-fetches the payment from Moyasar before changing anything.
+  skip: (req) => req.path === '/callback',
+});
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? '*' }));
 app.use(express.json());
 
@@ -75,8 +117,8 @@ app.use(
 );
 
 app.use('/api/menu', menuRouter);
-app.use('/api/orders', ordersRouter);
-app.use('/api/payments', paymentsRouter);
+app.use('/api/orders', writeLimiter, ordersRouter);
+app.use('/api/payments', writeLimiter, paymentsRouter);
 app.use('/api/addresses', addressesRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/branches', branchesRouter);
