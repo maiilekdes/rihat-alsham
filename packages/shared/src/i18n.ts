@@ -3,6 +3,13 @@
 
 export const strings = {
   ar: {
+    saveOrderTitle: 'احفظ طلبك',
+    saveOrderBody: 'سجّل دخولك لإتمام الطلب وتتبّعه — سلتك محفوظة.',
+    saveOrdersTitle: 'طلباتك السابقة',
+    saveOrdersBody: 'سجّل دخولك لعرض طلباتك ونقاط الولاء.',
+    saveProfileTitle: 'حسابك',
+    saveProfileBody: 'سجّل دخولك لحفظ عناوينك ونقاطك.',
+    browseFirst: 'تصفّح القائمة',
     signInUnavailableTitle: 'غير متاح حالياً',
     signInUnavailableBody: 'تسجيل الدخول بهذه الطريقة غير مُفعّل بعد. استخدم رقم الجوال.',
     appName: 'ريحة الشام',
@@ -47,6 +54,13 @@ export const strings = {
     deliveryNotes: 'ملاحظات التوصيل',
   },
   en: {
+    saveOrderTitle: 'Save your order',
+    saveOrderBody: 'Sign in to place and track your order — your cart is kept.',
+    saveOrdersTitle: 'Your past orders',
+    saveOrdersBody: 'Sign in to see your orders and loyalty points.',
+    saveProfileTitle: 'Your account',
+    saveProfileBody: 'Sign in to save your addresses and points.',
+    browseFirst: 'Browse the menu',
     signInUnavailableTitle: 'Not available yet',
     signInUnavailableBody: 'This sign-in method is not set up yet. Please use your phone number.',
     appName: 'Rihat Alsham',

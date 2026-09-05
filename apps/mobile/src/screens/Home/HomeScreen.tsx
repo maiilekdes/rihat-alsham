@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MenuItem } from '@rihasham/shared';
 import { api } from '../../lib/api';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items } = useCart();
+  const { firebaseUser } = useAuth();
   const [categories, setCategories] = useState<CategoryWithItems[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,10 +74,22 @@ export default function HomeScreen() {
           <Text style={styles.headerTitleEn}>RIHAT ALSHAM</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')}>
+          <TouchableOpacity
+            onPress={() =>
+              firebaseUser
+                ? navigation.navigate('OrderHistory')
+                : navigation.navigate('Login', { reason: 'orders' })
+            }
+          >
             <Text style={styles.headerLink}>{t('orders')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <TouchableOpacity
+            onPress={() =>
+              firebaseUser
+                ? navigation.navigate('Profile')
+                : navigation.navigate('Login', { reason: 'profile' })
+            }
+          >
             <Text style={styles.headerLink}>{t('profile')}</Text>
           </TouchableOpacity>
         </View>

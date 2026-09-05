@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 import * as Google from 'expo-auth-session/providers/google';
@@ -13,8 +13,30 @@ import { RootStackParamList } from '../../navigation/RootNavigator';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { sendOtp, signInWithGoogleIdToken, signInWithFacebookAccessToken, signInWithApple } = useAuth();
+  const { firebaseUser, profile, sendOtp, signInWithGoogleIdToken, signInWithFacebookAccessToken, signInWithApple } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Login'>>();
+  const reason = route.params?.reason;
+
+  const prompt =
+    reason === 'orders'
+      ? { title: t('saveOrdersTitle'), body: t('saveOrdersBody') }
+      : reason === 'profile'
+        ? { title: t('saveProfileTitle'), body: t('saveProfileBody') }
+        : reason === 'checkout'
+          ? { title: t('saveOrderTitle'), body: t('saveOrderBody') }
+          : null;
+
+  // Come back to whatever the person was doing, rather than dropping them on
+  // the menu having forgotten their order.
+  React.useEffect(() => {
+    if (!firebaseUser) return;
+    if (profile && !profile.phoneVerified) return navigation.replace('AddPhone');
+    if (reason === 'checkout') return navigation.replace('Checkout');
+    if (reason === 'orders') return navigation.replace('OrderHistory');
+    if (reason === 'profile') return navigation.replace('Profile');
+    navigation.goBack();
+  }, [firebaseUser, profile?.phoneVerified]);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -81,8 +103,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('appName')}</Text>
-      <Text style={styles.subtitle}>{t('login')}</Text>
+      <Text style={styles.title}>{prompt ? prompt.title : t('appName')}</Text>
+      <Text style={styles.subtitle}>{prompt ? prompt.body : t('login')}</Text>
+
+      {!!prompt && (
+        <TouchableOpacity style={styles.browseLink} onPress={() => navigation.goBack()}>
+          <Text style={styles.browseLinkText}>{t('browseFirst')}</Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.label}>{t('phoneNumber')}</Text>
       <View style={styles.phoneRow}>
@@ -151,6 +179,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white, padding: 24, justifyContent: 'center' },
+  browseLink: { alignSelf: 'center', paddingVertical: 10, marginBottom: 4 },
+  browseLinkText: { fontSize: 13.5, fontWeight: '600', color: colors.orange },
   title: { fontSize: 32, fontWeight: '800', color: colors.red, textAlign: 'center' },
   subtitle: { fontSize: 16, color: colors.inkSoft, textAlign: 'center', marginBottom: 32 },
   label: { fontSize: 13, fontWeight: '600', color: colors.ink, marginBottom: 8 },

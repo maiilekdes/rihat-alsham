@@ -16,7 +16,9 @@ import OrderHistoryScreen from '../screens/Orders/OrderHistoryScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 
 export type RootStackParamList = {
-  Login: undefined;
+  // `reason` lets the sign-in screen explain why it appeared — asking someone
+  // to sign in is much easier to accept when it names what they get back.
+  Login: { reason?: 'checkout' | 'orders' | 'profile' } | undefined;
   Otp: { verificationId: string; e164Phone: string };
   AddPhone: undefined;
   Home: undefined;
@@ -31,33 +33,31 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { firebaseUser, profile, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) return <AppLoading />;
 
-  const needsPhone = firebaseUser && profile && !profile.phoneVerified;
-
+  // Everyone starts on the menu. Making people sign in before they can see the
+  // food is the fastest way to lose them — nobody creates an account for a
+  // restaurant they have not looked at yet. Sign-in is asked for at the point
+  // it actually buys something: placing an order, or opening past orders.
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: true }}>
-        {!firebaseUser ? (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Otp" component={OtpScreen} options={{ title: '' }} />
-          </>
-        ) : needsPhone ? (
-          <Stack.Screen name="AddPhone" component={AddPhoneScreen} options={{ title: '', headerBackVisible: false }} />
-        ) : (
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
-            <Stack.Screen name="Cart" component={CartScreen} />
-            <Stack.Screen name="Checkout" component={CheckoutScreen} />
-            <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
-            <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-          </>
-        )}
+      <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: true }}>
+        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: '' }} />
+        <Stack.Screen name="Cart" component={CartScreen} />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false, presentation: 'modal' }}
+        />
+        <Stack.Screen name="Otp" component={OtpScreen} options={{ title: '' }} />
+        <Stack.Screen name="AddPhone" component={AddPhoneScreen} options={{ title: '' }} />
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
+        <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -12,6 +13,15 @@ export default function CartScreen() {
   const isAr = i18n.language === 'ar';
   const { items, removeItem, updateQuantity, subtotal } = useCart();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { firebaseUser, profile } = useAuth();
+
+  // The cart survives sign-in (it lives in CartContext), so sending someone to
+  // sign in here costs them nothing — they come back to the same order.
+  function goToCheckout() {
+    if (!firebaseUser) return navigation.navigate('Login', { reason: 'checkout' });
+    if (profile && !profile.phoneVerified) return navigation.navigate('AddPhone');
+    navigation.navigate('Checkout');
+  }
 
   return (
     <View style={styles.container}>
@@ -51,7 +61,7 @@ export default function CartScreen() {
             <Text style={styles.totalLabel}>{t('subtotal')}</Text>
             <Text style={styles.totalValue}>{subtotal.toFixed(2)} SAR</Text>
           </View>
-          <TouchableOpacity style={styles.checkoutBtn} onPress={() => navigation.navigate('Checkout')}>
+          <TouchableOpacity style={styles.checkoutBtn} onPress={goToCheckout}>
             <Text style={styles.checkoutBtnText}>{t('checkout')}</Text>
           </TouchableOpacity>
         </View>
