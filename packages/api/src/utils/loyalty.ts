@@ -37,12 +37,35 @@ export async function settleLoyaltyForOrder(client: PoolClient, orderId: string)
     ]);
     const reward = rewardRes.rows[0];
     if (reward) {
-      const { rows: userRows } = await client.query(`SELECT loyalty_points FROM users WHERE id = $1`, [order.user_id]);
-      const deduction = Math.min(reward.points_cost, userRows[0].loyalty_points);
-      await client.query(`UPDATE users SET loyalty_points = loyalty_points - $2 WHERE id = $1`, [order.user_id, deduction]);
+      // Deduct the full cost or nothing, decided inside the UPDATE itself so no
+      // stale read can sit between the check and the write. The previous version
+      // read the balance, then took Math.min(cost, balance) — which quietly
+      // deducted zero when the balance had already been spent, handing out the
+      // reward for free instead of refusing it. Order creation now reserves
+      // points against pending orders, so this should not trigger; it stays as
+      // the last line of defence, and records what happened either way.
+      const deductRes = await client.query(
+        `UPDATE users SET loyalty_points = loyalty_points - $2
+         WHERE id = $1 AND loyalty_points >= $2
+         RETURNING loyalty_points`,
+        [order.user_id, reward.points_cost]
+      );
+      const settled = deductRes.rowCount === 1;
+      if (!settled) {
+        console.warn(
+          `[loyalty] order ${orderId}: could not deduct ${reward.points_cost} points from user ${order.user_id} — balance too low. Reward honoured, not charged.`
+        );
+      }
       await client.query(
         `INSERT INTO loyalty_ledger (user_id, order_id, type, points, note) VALUES ($1,$2,'redeemed',$3,$4)`,
-        [order.user_id, orderId, -deduction, `Redeemed: ${reward.name_en}`]
+        [
+          order.user_id,
+          orderId,
+          settled ? -reward.points_cost : 0,
+          settled
+            ? `Redeemed: ${reward.name_en}`
+            : `Redeemed: ${reward.name_en} (unsettled — balance too low at payment)`,
+        ]
       );
     }
   }

@@ -112,16 +112,35 @@ ordersRouter.post('/', requireAuth, requireVerifiedPhone, async (req: AuthedRequ
     // routes/payments.ts.
     let reward: { id: string; nameAr: string; nameEn: string; pointsCost: number; itemId: string; variantId: string | null } | null = null;
     if (d.redeemRewardId) {
+      // Lock this customer's row for the rest of the transaction, so two
+      // checkouts running at once can't both clear the balance check below.
+      const balRes = await client.query(`SELECT loyalty_points FROM users WHERE id = $1 FOR UPDATE`, [
+        req.user!.id,
+      ]);
+
       const rRes = await client.query(
-        `SELECT r.id, r.name_ar, r.name_en, r.points_cost, r.menu_item_id, r.variant_id, u.loyalty_points
-         FROM loyalty_rewards r, users u
-         WHERE r.id = $1 AND u.id = $2 AND r.is_active = TRUE`,
-        [d.redeemRewardId, req.user!.id]
+        `SELECT id, name_ar, name_en, points_cost, menu_item_id, variant_id
+         FROM loyalty_rewards WHERE id = $1 AND is_active = TRUE`,
+        [d.redeemRewardId]
       );
       const row = rRes.rows[0];
       if (!row) throw new HttpError(400, 'Unknown or inactive reward');
-      if (row.loyalty_points < row.points_cost) {
-        throw new HttpError(409, `Not enough points — need ${row.points_cost}, have ${row.loyalty_points}`);
+
+      // Because points are only deducted once payment succeeds, checking the
+      // raw balance here let a single balance fund several orders: redeem the
+      // same 100-point reward on five unpaid orders, pay all five, and only the
+      // first deduction found points to take. Count what pending orders have
+      // already claimed so each point can only be promised once.
+      const pendingRes = await client.query(
+        `SELECT COALESCE(SUM(r.points_cost), 0) AS earmarked
+         FROM orders o
+         JOIN loyalty_rewards r ON r.id = o.redeemed_reward_id
+         WHERE o.user_id = $1 AND o.status = 'pending_payment'`,
+        [req.user!.id]
+      );
+      const available = Number(balRes.rows[0].loyalty_points) - Number(pendingRes.rows[0].earmarked);
+      if (available < row.points_cost) {
+        throw new HttpError(409, `Not enough points — need ${row.points_cost}, have ${available}`);
       }
       reward = {
         id: row.id,
