@@ -12,7 +12,7 @@ export const messagesRouter = Router({ mergeParams: true });
  * placed it, or any staff/owner. Threads on a `pending_payment` order don't
  * exist yet — chat only opens once payment succeeds and the order is real.
  */
-async function loadAuthorizedOrder(orderId: string, req: AuthedRequest) {
+export async function loadAuthorizedOrder(orderId: string, req: AuthedRequest) {
   const { rows } = await pool.query(
     `SELECT id, user_id, status FROM orders WHERE id = $1 AND status != 'pending_payment'`,
     [orderId]

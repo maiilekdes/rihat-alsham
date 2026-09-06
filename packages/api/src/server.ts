@@ -17,6 +17,7 @@ import { usersRouter } from './routes/users';
 import { branchesRouter } from './routes/branches';
 import { analyticsRouter } from './routes/analytics';
 import { messagesRouter } from './routes/messages';
+import { mediaRouter } from './routes/media';
 import { promotionsRouter } from './routes/promotions';
 import { loyaltyRouter } from './routes/loyalty';
 
@@ -88,7 +89,13 @@ const writeLimiter = rateLimit({
   // Never throttle Moyasar's payment callback: dropping one loses a real
   // payment's confirmation, and it is already safe — it ignores the caller and
   // re-fetches the payment from Moyasar before changing anything.
-  skip: (req) => req.path === '/callback',
+  //
+  // Reads are skipped too. This limiter guards record creation, but it is
+  // mounted on the whole /api/orders prefix, so it was also counting every
+  // order fetch, chat poll and inline chat photo against the same 20/minute —
+  // opening one conversation with twenty photos would have throttled itself and
+  // left the images broken. GET traffic is still covered by the global limiter.
+  skip: (req) => req.path === '/callback' || req.method === 'GET',
 });
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? '*' }));
 app.use(express.json());
@@ -124,6 +131,13 @@ app.use('/api/users', usersRouter);
 app.use('/api/branches', branchesRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/orders/:orderId/messages', messagesRouter);
+// Chat media arrives as a raw body rather than JSON, so the parser is scoped to
+// this route only — mounting express.raw() globally would swallow every request.
+app.use(
+  '/api/orders/:orderId/media',
+  express.raw({ type: ['image/*', 'video/*'], limit: '25mb' }),
+  mediaRouter
+);
 app.use('/api/promotions', promotionsRouter);
 app.use('/api/loyalty', loyaltyRouter);
 
