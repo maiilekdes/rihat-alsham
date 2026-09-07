@@ -103,10 +103,10 @@ ${DATA_TABLE_AR}
 <p>لا نشارك بياناتك مع أي جهة أخرى إلا إذا طلبت ذلك جهة نظامية مختصة.</p>
 
 <h2>٥. نقل البيانات خارج المملكة</h2>
-<p>تُعالَج بعض البيانات على خوادم خارج المملكة العربية السعودية (هولندا، ومراكز بيانات Google). يجب توثيق المسوّغ والضمانات النظامية لكل عملية نقل وفق المادة ٢٩ من نظام حماية البيانات الشخصية ولائحة نقل البيانات قبل نشر هذه السياسة.</p>
+<p>تُعالَج بعض البيانات خارج المملكة العربية السعودية: تستضيف Railway الخادم وقاعدة البيانات في هولندا، وتُشغَّل خدمة Firebase Authentication من مراكز بيانات في الولايات المتحدة، وقد تستخدم الإشعارات السحابية بنية Google العالمية. يجب توثيق المسوّغ والضمانات النظامية لكل عملية نقل وفق المادة ٢٩ من نظام حماية البيانات الشخصية ولائحة نقل البيانات قبل نشر هذه السياسة.</p>
 
 <h2>٦. مدة الحفظ</h2>
-<p>يُحتفظ بسجلات الطلبات والفواتير للمدة التي تفرضها الأنظمة الضريبية والتجارية. تُحذف بقية بياناتك عند حذف حسابك.</p>
+<p>يُحتفظ بسجلات الطلبات والمدفوعات والفواتير للمدة التي تفرضها الأنظمة الضريبية والتجارية. عند حذف الحساب نزيل معرّفات الملف الشخصي والعناوين ونقاط الولاء ومحتوى المحادثات وملاحظات الطلب، ونُبقي سجل المعاملة بعد إخفاء هوية صاحبه. ستُضاف مدة الحفظ الدقيقة هنا بعد تأكيد حالة التسجيل الضريبي للمنشأة.</p>
 
 <h2>٧. حقوقك</h2>
 <p>وفقاً لنظام حماية البيانات الشخصية، لك الحق في الاطلاع على بياناتك، وتصحيحها، وطلب حذفها، والاعتراض على معالجتها.</p>
@@ -147,10 +147,10 @@ ${DATA_TABLE_EN}
 <p>We share your data with no one else unless a competent authority lawfully requires it.</p>
 
 <h2>5. Transfers outside Saudi Arabia</h2>
-<p>Some data is processed on servers outside the Kingdom (the Netherlands and Google data centres). The legal basis and safeguards for each transfer must be documented under Article 29 of the Personal Data Protection Law and its Transfer Regulation before this policy is published.</p>
+<p>Some data is processed outside the Kingdom: Railway hosts the server and database in the Netherlands, Firebase Authentication runs from data centres in the United States, and cloud messaging may use Google's global infrastructure. The legal basis and safeguards for each transfer must be documented under Article 29 of the Personal Data Protection Law and its Transfer Regulation before this policy is published.</p>
 
 <h2>6. Retention</h2>
-<p>Order records and invoices are kept for the period required by Saudi tax and commercial law. The rest of your data is deleted when you delete your account.</p>
+<p>Order, payment, and invoice records are kept for the period required by Saudi tax and commercial law. When you delete your account, we remove profile identifiers, addresses, loyalty records, chat content, and order notes, while retaining an anonymized transaction record. The exact retention period will be added here after the business's VAT-registration status is confirmed.</p>
 
 <h2>7. Your rights</h2>
 <p>Under the Personal Data Protection Law you may access your data, correct it, request its deletion, and object to its processing.</p>
@@ -306,7 +306,7 @@ const cookies: LegalDoc = {
 <p class="updated">آخر تحديث: ${B.lastUpdated}</p>
 
 <h2>تطبيق الجوال</h2>
-<p><strong>لا يستخدم تطبيق الجوال ملفات ارتباط (Cookies) ولا أي أدوات تتبّع.</strong> يحفظ التطبيق جلسة الدخول على جهازك فقط حتى لا تضطر لتسجيل الدخول في كل مرة، ولا تُقرأ هذه البيانات من قِبلنا ولا من طرف ثالث.</p>
+<p><strong>لا يستخدم تطبيق الجوال ملفات ارتباط للتحليلات أو الإعلانات أو التتبّع.</strong> يحفظ التطبيق بيانات اعتماد جلسة Firebase على جهازك حتى لا تضطر لتسجيل الدخول في كل مرة، ويرسل رمز مصادقة إلى خادمنا عند طلب بيانات حسابك أو تقديم طلب.</p>
 
 <h2>لوحة تحكم الموظفين</h2>
 <p>لوحة التحكم مخصّصة لموظفي المطعم فقط وليست موجّهة للعملاء. تستخدم تخزيناً محلياً <strong>ضرورياً فقط</strong> للحفاظ على جلسة تسجيل الدخول. لا توجد ملفات ارتباط للتحليلات أو التسويق أو التتبّع.</p>
@@ -321,7 +321,7 @@ const cookies: LegalDoc = {
 <p class="updated">Last updated: ${B.lastUpdated}</p>
 
 <h2>Mobile app</h2>
-<p><strong>The mobile app uses no cookies and no tracking technologies.</strong> It stores your sign-in session on your own device so you don't have to log in every time. That data is never read by us or by any third party.</p>
+<p><strong>The mobile app uses no analytics, advertising, or tracking cookies.</strong> It stores a Firebase session credential on your device so you do not have to sign in every time, and sends an authentication token to our server when you request account data or place an order.</p>
 
 <h2>Staff dashboard</h2>
 <p>The dashboard is for restaurant staff only and is not customer-facing. It uses <strong>strictly necessary</strong> local storage to keep you signed in. There are no analytics, marketing or tracking cookies.</p>

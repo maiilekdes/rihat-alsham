@@ -32,8 +32,8 @@ The remaining launch gates are:
 | Payment cards | Card details are tokenized by Moyasar; the API stores gateway response data including last four digits and brand. | `packages/api/src/routes/payments.ts` |
 | Analytics | The admin has sales analytics computed from first-party order records. No customer analytics or advertising SDK is initialized in the mobile code. | Dependency and source audit |
 | Hosting | API and PostgreSQL currently run in Railway's Amsterdam region. | Live Railway deployment metadata |
-| Firebase | Firebase Authentication provides phone, Google, and Apple authentication and push infrastructure. | Mobile and API authentication code |
-| Account deletion | Saved addresses, loyalty history, chat content/media, identifiers, and the Firebase account are removed; the order row remains anonymized for financial records. | `packages/api/src/routes/users.ts` |
+| Firebase | Firebase Authentication provides phone, Google, and Apple authentication; Expo notifications use Firebase Cloud Messaging underneath on Android. | Mobile and API authentication code |
+| Account deletion | Saved addresses, loyalty history, chat content/media, identifiers, OTP records, and order notes are removed; the order and payment rows remain anonymized for financial records. Firebase account removal is attempted after the database transaction. | `packages/api/src/routes/users.ts` |
 | Invoicing | The app stores orders and payments but has no tax-invoice number, VAT breakdown, XML, cryptographic stamp, ZATCA reporting, invoice PDF, or customer invoice screen. | Database, API, and mobile audit |
 | Legal publication | Public legal routes exist in source but are absent from the current live API. The source now blocks them while placeholders remain. | Live HTTP check and route guard |
 
@@ -86,7 +86,7 @@ For each external processor, record:
 | Processor | Data/purpose | Current location | Required evidence before launch |
 | --- | --- | --- | --- |
 | Railway | Account, address, order, chat, and payment metadata; API/database hosting | Amsterdam, Netherlands | Contract/DPA, subprocessor list, security evidence, transfer basis, and Saudi-required safeguard or approved exception |
-| Google Firebase | Identity, phone verification, social sign-in, and push tokens | Google infrastructure outside Saudi Arabia may be used | Applicable product terms/DPA, storage and processing locations, data settings, transfer basis, and safeguard or approved exception |
+| Google Firebase | Identity, phone verification, social sign-in, and push infrastructure | Firebase Authentication: United States; Cloud Messaging: global Google infrastructure | Applicable product terms/DPA, data settings, transfer basis, and safeguard or approved exception |
 | Moyasar | Payment and transaction data | Confirm from the merchant agreement | Merchant agreement/DPA, retention, location, and incident contact |
 
 Customer acknowledgement is not itself a substitute for the conditions and

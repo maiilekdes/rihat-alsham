@@ -75,6 +75,7 @@ usersRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
   const userId = req.user!.id;
   const client = await pool.connect();
   let providerUid: string | null = null;
+  let phone: string | null = null;
   let orderIds: string[] = [];
 
   try {
@@ -84,11 +85,15 @@ usersRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
     // than taken from the request so this does not depend on the auth
     // middleware's shape.
     const { rows: userRows } = await client.query(
-      `SELECT provider_uid FROM users WHERE id = $1 FOR UPDATE`,
+      `SELECT provider_uid, phone FROM users WHERE id = $1 FOR UPDATE`,
       [userId]
     );
-    if (userRows.length === 0) return res.status(404).json({ error: 'Account not found' });
+    if (userRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Account not found' });
+    }
     providerUid = userRows[0].provider_uid;
+    phone = userRows[0].phone;
 
     const { rows: orderRows } = await client.query(
       `SELECT id FROM orders WHERE user_id = $1`,
@@ -96,12 +101,25 @@ usersRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
     );
     orderIds = orderRows.map((r: { id: string }) => r.id);
 
-    await client.query(`DELETE FROM addresses WHERE user_id = $1`, [userId]);
-    await client.query(`DELETE FROM loyalty_ledger WHERE user_id = $1`, [userId]);
+    // Remove operational text that is unnecessary for financial retention.
+    // The address reference must be cleared first because orders.address_id
+    // deliberately has no cascading delete.
     await client.query(
-      `UPDATE order_messages SET body = NULL, media_url = NULL WHERE sender_id = $1`,
+      `DELETE FROM order_messages
+       WHERE order_id IN (SELECT id FROM orders WHERE user_id = $1)`,
       [userId]
     );
+    await client.query(
+      `UPDATE order_items SET notes = NULL
+       WHERE order_id IN (SELECT id FROM orders WHERE user_id = $1)`,
+      [userId]
+    );
+    await client.query(`UPDATE orders SET address_id = NULL, notes = NULL WHERE user_id = $1`, [
+      userId,
+    ]);
+    await client.query(`DELETE FROM addresses WHERE user_id = $1`, [userId]);
+    await client.query(`DELETE FROM loyalty_ledger WHERE user_id = $1`, [userId]);
+    if (phone) await client.query(`DELETE FROM otp_codes WHERE phone = $1`, [phone]);
     await client.query(
       `UPDATE users
           SET phone = NULL, phone_verified = FALSE, full_name = NULL, email = NULL,
