@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, FlatList, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { io, Socket } from 'socket.io-client';
@@ -21,6 +22,7 @@ interface Props {
  * on the order tracking screen and closes naturally once the order completes.
  */
 export default function OrderChat({ orderId }: Props) {
+  const { t } = useTranslation();
   const { profile } = useAuth();
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [text, setText] = useState('');
@@ -94,7 +96,15 @@ export default function OrderChat({ orderId }: Props) {
                 {item.type === 'text' && (
                   <Text style={[styles.bubbleText, isMine && styles.bubbleTextMine]}>{item.body}</Text>
                 )}
-                {item.type === 'image' && <Image source={{ uri: item.mediaUrl }} style={styles.media} />}
+                {item.type === 'image' && (
+                  <Image
+                    source={{ uri: item.mediaUrl }}
+                    style={styles.media}
+                    accessible
+                    accessibilityRole="image"
+                    accessibilityLabel={t('a11yChatPhoto')}
+                  />
+                )}
                 {item.type === 'video' && (
                   <Video source={{ uri: item.mediaUrl! }} style={styles.media} useNativeControls resizeMode={ResizeMode.COVER} />
                 )}
@@ -105,11 +115,27 @@ export default function OrderChat({ orderId }: Props) {
       />
 
       <View style={styles.inputRow}>
-        <TouchableOpacity style={styles.attachBtn} onPress={() => sendMedia('image')} disabled={uploading}>
-          <Text style={styles.attachIcon}>📷</Text>
+        <TouchableOpacity
+          style={styles.attachBtn}
+          onPress={() => sendMedia('image')}
+          disabled={uploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11ySendPhoto')}
+          accessibilityState={{ disabled: uploading }}
+        >
+          {/* The emoji is decorative: the button's own label carries the meaning,
+              otherwise a screen reader announces "camera emoji" and nothing else. */}
+          <Text style={styles.attachIcon} importantForAccessibility="no">📷</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.attachBtn} onPress={() => sendMedia('video')} disabled={uploading}>
-          <Text style={styles.attachIcon}>🎥</Text>
+        <TouchableOpacity
+          style={styles.attachBtn}
+          onPress={() => sendMedia('video')}
+          disabled={uploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11ySendVideo')}
+          accessibilityState={{ disabled: uploading }}
+        >
+          <Text style={styles.attachIcon} importantForAccessibility="no">🎥</Text>
         </TouchableOpacity>
         <TextInput
           style={styles.textInput}

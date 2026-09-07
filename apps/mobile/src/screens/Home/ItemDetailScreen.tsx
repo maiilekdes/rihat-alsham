@@ -77,7 +77,13 @@ export default function ItemDetailScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Image source={{ uri: item.imageUrl }} style={styles.image} />
+      <Image
+        source={{ uri: item.imageUrl }}
+        style={styles.image}
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={t('a11yDishImage', { name: isAr ? item.nameAr : item.nameEn })}
+      />
       <View style={{ padding: 16 }}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{isAr ? item.nameAr : item.nameEn}</Text>

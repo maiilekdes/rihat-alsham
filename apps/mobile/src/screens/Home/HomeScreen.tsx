@@ -75,6 +75,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() =>
               firebaseUser
                 ? navigation.navigate('OrderHistory')
@@ -84,6 +85,7 @@ export default function HomeScreen() {
             <Text style={styles.headerLink}>{t('orders')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() =>
               firebaseUser
                 ? navigation.navigate('Profile')
@@ -104,7 +106,13 @@ export default function HomeScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabRow}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.tab} onPress={() => setActiveCategory(item.id)}>
+          <TouchableOpacity
+            style={styles.tab}
+            onPress={() => setActiveCategory(item.id)}
+            accessibilityRole="tab"
+            accessibilityLabel={t('a11yCategoryTab', { name: isAr ? item.nameAr : item.nameEn })}
+            accessibilityState={{ selected: activeCategory === item.id }}
+          >
             <Text style={[styles.tabText, activeCategory === item.id && styles.tabTextActive]}>
               {isAr ? item.nameAr : item.nameEn}
             </Text>
@@ -129,7 +137,13 @@ export default function HomeScreen() {
               onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
             >
               {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.thumb}
+                  accessible
+                  accessibilityRole="image"
+                  accessibilityLabel={t('a11yDishImage', { name: isAr ? item.nameAr : item.nameEn })}
+                />
               ) : (
                 <View style={styles.thumbPlaceholder} />
               )}

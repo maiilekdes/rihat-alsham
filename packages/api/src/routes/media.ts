@@ -27,7 +27,7 @@ import { loadAuthorizedOrder } from './messages';
  */
 export const mediaRouter = Router({ mergeParams: true });
 
-const MEDIA_ROOT = process.env.MEDIA_DIR ?? path.join(__dirname, '../../media');
+export const MEDIA_ROOT = process.env.MEDIA_DIR ?? path.join(__dirname, '../../media');
 
 const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED: Record<string, string> = {

@@ -18,6 +18,7 @@ import { branchesRouter } from './routes/branches';
 import { analyticsRouter } from './routes/analytics';
 import { messagesRouter } from './routes/messages';
 import { mediaRouter } from './routes/media';
+import { legalRouter } from './routes/legal';
 import { promotionsRouter } from './routes/promotions';
 import { loyaltyRouter } from './routes/loyalty';
 
@@ -122,6 +123,10 @@ app.use(
     immutable: false,
   })
 );
+
+// Public legal pages. Mounted before the API routes and outside /api because
+// the App Store fetches the privacy policy anonymously at submission time.
+app.use('/legal', legalRouter);
 
 app.use('/api/menu', menuRouter);
 app.use('/api/orders', writeLimiter, ordersRouter);
