@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
-import * as Google from 'expo-auth-session/providers/google';
+import { authErrorMessage, isAuthCancellation } from '../../lib/authErrors';
+import { normalizeSaudiPhone } from '../../lib/phone';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../../context/AuthContext';
@@ -12,8 +13,8 @@ import { colors } from '../../theme';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
 export default function LoginScreen() {
-  const { t } = useTranslation();
-  const { firebaseUser, profile, sendOtp, signInWithGoogleIdToken, signInWithFacebookAccessToken, signInWithApple } = useAuth();
+  const { t, i18n } = useTranslation();
+  const { firebaseUser, profile, refreshProfile, sendOtp, signInWithGoogleIdToken, signInWithFacebookAccessToken, signInWithApple } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Login'>>();
   const reason = route.params?.reason;
@@ -30,13 +31,13 @@ export default function LoginScreen() {
   // Come back to whatever the person was doing, rather than dropping them on
   // the menu having forgotten their order.
   React.useEffect(() => {
-    if (!firebaseUser) return;
-    if (profile && !profile.phoneVerified) return navigation.replace('AddPhone');
+    if (!firebaseUser || !profile || !navigation.isFocused()) return;
+    if (profile && !profile.phoneVerified) return navigation.replace('AddPhone', { reason });
     if (reason === 'checkout') return navigation.replace('Checkout');
     if (reason === 'orders') return navigation.replace('OrderHistory');
     if (reason === 'profile') return navigation.replace('Profile');
     navigation.goBack();
-  }, [firebaseUser, profile?.phoneVerified]);
+  }, [firebaseUser, profile, navigation, reason]);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -47,55 +48,72 @@ export default function LoginScreen() {
   const authConfig = (Constants.expoConfig?.extra?.auth ?? {}) as {
     googleWebClientId?: string;
     googleIosClientId?: string;
-    googleAndroidClientId?: string;
     facebookAppId?: string;
   };
   const isPlaceholder = (v?: string) => !v || v.startsWith('REPLACE_WITH');
-  const googleReady = !isPlaceholder(authConfig.googleIosClientId) || !isPlaceholder(authConfig.googleWebClientId);
+  const googleReady = !isPlaceholder(authConfig.googleWebClientId) && (Platform.OS !== 'ios' || !isPlaceholder(authConfig.googleIosClientId));
   const facebookReady = !isPlaceholder(authConfig.facebookAppId);
-
-  const [, googleResponse, promptGoogle] = Google.useAuthRequest({
-    webClientId: authConfig.googleWebClientId,
-    iosClientId: authConfig.googleIosClientId,
-    androidClientId: authConfig.googleAndroidClientId,
-  });
   const [, fbResponse, promptFacebook] = Facebook.useAuthRequest({
     clientId: authConfig.facebookAppId ?? '',
   });
 
+  const [appleAvailable, setAppleAvailable] = useState(false);
   React.useEffect(() => {
-    if (googleResponse?.type === 'success' && googleResponse.authentication?.idToken) {
-      signInWithGoogleIdToken(googleResponse.authentication.idToken).catch(() =>
-        Alert.alert('Error', 'Google sign-in failed')
-      );
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+  }, []);
+
+  function showAuthError(error: unknown) {
+    if (!isAuthCancellation(error)) Alert.alert(t('login'), authErrorMessage(error, i18n.language === 'ar'));
+  }
+
+  async function handleGoogleSignIn() {
+    if (loading) return;
+    if (!googleReady) return Alert.alert(t('signInUnavailableTitle'), t('signInUnavailableBody'));
+    setLoading(true);
+    try {
+      // Lazy import keeps Expo Go able to open the rest of the app.
+      if (Constants.appOwnership === 'expo') throw { code: 'auth/native-build-required' };
+      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
+      GoogleSignin.configure({ webClientId: authConfig.googleWebClientId, iosClientId: authConfig.googleIosClientId });
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      if (response.type === 'cancelled') return;
+      if (!response.data.idToken) throw { code: 'auth/missing-id-token' };
+      await signInWithGoogleIdToken(response.data.idToken);
+    } catch (error) {
+      showAuthError(error);
+    } finally {
+      setLoading(false);
     }
-  }, [googleResponse]);
+  }
 
   React.useEffect(() => {
     if (fbResponse?.type === 'success' && fbResponse.authentication?.accessToken) {
-      signInWithFacebookAccessToken(fbResponse.authentication.accessToken).catch(() =>
-        Alert.alert('Error', 'Facebook sign-in failed')
-      );
+      signInWithFacebookAccessToken(fbResponse.authentication.accessToken).catch(showAuthError);
     }
   }, [fbResponse]);
 
   async function handleAppleSignIn() {
+    if (loading) return;
+    setLoading(true);
     try {
       await signInWithApple();
-    } catch (err: any) {
-      // User cancelling the Apple sheet throws ERR_REQUEST_CANCELED — not a real error.
-      if (err?.code !== 'ERR_REQUEST_CANCELED') Alert.alert('Error', 'Apple sign-in failed');
+    } catch (error) {
+      showAuthError(error);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleSendOtp() {
-    const e164 = phone.startsWith('+') ? phone : `+966${phone.replace(/^0/, '')}`;
+    if (loading) return;
     setLoading(true);
     try {
+      const e164 = normalizeSaudiPhone(phone);
       const verificationId = await sendOtp(e164);
-      navigation.navigate('Otp', { verificationId, e164Phone: e164 });
-    } catch (err) {
-      Alert.alert('Error', 'Could not send verification code. Check the number and try again.');
+      navigation.navigate('Otp', { verificationId, e164Phone: e164, reason });
+    } catch (error) {
+      showAuthError(error);
     } finally {
       setLoading(false);
     }
@@ -112,6 +130,11 @@ export default function LoginScreen() {
         </TouchableOpacity>
       )}
 
+      {firebaseUser && !profile && (
+        <TouchableOpacity onPress={() => refreshProfile().catch(showAuthError)}>
+          <Text style={styles.browseLinkText}>{i18n.language === 'ar' ? 'إعادة تحميل الحساب' : 'Retry loading account'}</Text>
+        </TouchableOpacity>
+      )}
       <Text style={styles.label}>{t('phoneNumber')}</Text>
       <View style={styles.phoneRow}>
         <Text style={styles.countryCode}>+966</Text>
@@ -121,7 +144,7 @@ export default function LoginScreen() {
           placeholder="5XXXXXXXX"
           value={phone}
           onChangeText={setPhone}
-          maxLength={10}
+          maxLength={20}
         />
       </View>
 
@@ -139,7 +162,7 @@ export default function LoginScreen() {
           per their Human Interface Guidelines, and only ever shows on iOS.
           It goes first among the social options when present, per Apple's
           own placement guidance for apps that offer it. */}
-      {Platform.OS === 'ios' && (
+      {appleAvailable && (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -153,11 +176,8 @@ export default function LoginScreen() {
           multicolor "G" mark — never a solid brand-color fill. */}
       <TouchableOpacity
         style={styles.googleBtn}
-        onPress={() =>
-          googleReady
-            ? promptGoogle()
-            : Alert.alert(t('signInUnavailableTitle'), t('signInUnavailableBody'))
-        }
+        onPress={handleGoogleSignIn}
+        disabled={loading}
       >
         <Text style={styles.googleBtnText}>{t('continueWithGoogle')}</Text>
       </TouchableOpacity>
@@ -167,7 +187,7 @@ export default function LoginScreen() {
         style={styles.facebookBtn}
         onPress={() =>
           facebookReady
-            ? promptFacebook()
+            ? promptFacebook().catch(showAuthError)
             : Alert.alert(t('signInUnavailableTitle'), t('signInUnavailableBody'))
         }
       >

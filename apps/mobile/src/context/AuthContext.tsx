@@ -5,6 +5,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { auth, firebaseApp } from '../lib/firebase';
 import { api } from '../lib/api';
+import { normalizeSaudiPhone } from '../lib/phone';
 
 interface Profile {
   id: string;
@@ -43,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await api.get('/api/users/me');
       setProfile({
         id: data.id,
-        phone: data.phone,
+        phone: data.phone ?? '',
         phoneVerified: data.phone_verified,
         fullName: data.full_name,
         role: data.role,
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch {
       setProfile(null);
+      throw Object.assign(new Error('Could not load account'), { code: 'auth/profile-unavailable' });
     }
   }
 
@@ -62,8 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      setProfile(null);
       try {
-        if (user) await refreshProfile();
+        if (user) await refreshProfile().catch(() => {});
         else setProfile(null);
       } finally {
         clearTimeout(failsafe);
@@ -82,7 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // phone auth — it appears briefly and invisibly in most cases.
   async function sendOtp(e164Phone: string) {
     const provider = new PhoneAuthProvider(auth);
-    return provider.verifyPhoneNumber(e164Phone, recaptchaRef.current!);
+    if (!recaptchaRef.current) throw { code: 'ERR_FIREBASE_RECAPTCHA_ERROR' };
+    return provider.verifyPhoneNumber(normalizeSaudiPhone(e164Phone), recaptchaRef.current);
   }
 
   async function confirmOtp(verificationId: string, code: string) {
@@ -96,13 +100,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // that every account must carry a verified phone regardless of sign-up method.
   async function linkPhone(verificationId: string, code: string) {
     const credential = PhoneAuthProvider.credential(verificationId, code);
-    await linkWithCredential(auth.currentUser!, credential);
+    if (!auth.currentUser) throw { code: 'auth/user-signed-out' };
+    await linkWithCredential(auth.currentUser, credential);
+    await auth.currentUser.getIdToken(true);
     await api.post('/api/users/me/confirm-phone');
     await refreshProfile();
   }
 
-  // Google/Facebook sign-in: the credential is obtained on the native side via
-  // expo-auth-session (see screens/Auth/SocialButtons.tsx) and exchanged here.
+  // Social credentials are obtained by the provider SDK in LoginScreen
+  // and exchanged for a Firebase session here.
   // Neither path grants a verified phone — the app must prompt for one before checkout.
   async function signInWithGoogleIdToken(idToken: string) {
     const credential = GoogleAuthProvider.credential(idToken);
@@ -122,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // random value, send the hash to Apple, then pass the original (raw) value
   // to Firebase so it can verify Apple's response matches our request.
   async function signInWithApple() {
+    if (!(await AppleAuthentication.isAvailableAsync())) throw { code: 'auth/apple-unavailable' };
     const rawNonce = Crypto.randomUUID();
     const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
 
@@ -130,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       nonce: hashedNonce,
     });
 
+    if (!appleCredential.identityToken) throw { code: 'auth/missing-id-token' };
     const provider = new OAuthProvider('apple.com');
     const credential = provider.credential({ idToken: appleCredential.identityToken!, rawNonce });
     await signInWithCredential(auth, credential);
@@ -152,7 +160,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile,
       }}
     >
-      <FirebaseRecaptchaVerifierModal ref={recaptchaRef} firebaseConfig={(firebaseApp.options as any)} />
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaRef}
+        firebaseConfig={(firebaseApp.options as any)}
+        attemptInvisibleVerification
+      />
       {children}
     </AuthContext.Provider>
   );

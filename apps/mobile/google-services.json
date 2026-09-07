@@ -12,7 +12,12 @@
           "package_name": "sa.rihasham.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "514910965480-6p0328177hn56sbld2gkhmpo12rqlo90.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBxMygGaoTKbmAybYhMXGSFJB5wO0ryGmw"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "514910965480-6p0328177hn56sbld2gkhmpo12rqlo90.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "514910965480-jfrc6405njb9bo4qqdu0u1unihmomcsg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "sa.rihasham.app"
+              }
+            }
+          ]
         }
       }
     }

@@ -38,4 +38,4 @@ COPY db db
 
 # Railway/Render inject PORT; server.ts already honours it.
 EXPOSE 4000
-CMD ["node", "packages/api/dist/server.js"]
+CMD ["sh", "-c", "node packages/api/scripts/migrate-auth.js && exec node packages/api/dist/server.js"]

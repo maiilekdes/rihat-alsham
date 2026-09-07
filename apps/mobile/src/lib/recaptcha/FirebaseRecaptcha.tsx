@@ -60,6 +60,8 @@ function getWebviewSource(
       : `<div id="recaptcha-cont" class="g-recaptcha"></div>`
   }
   <script>
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onError);
     var fullChallengeTimer;
     function onVerify(token) {
       if (fullChallengeTimer) {
@@ -72,18 +74,17 @@ function getWebviewSource(
       }));
     }
     function onLoad() {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'load'
-      }));
       firebase.auth().settings.appVerificationDisabledForTesting = ${appVerificationDisabledForTesting};
-      ${languageCode ? `firebase.auth().languageCode = '${languageCode}';` : ''}
+      ${languageCode ? `firebase.auth().languageCode = ${JSON.stringify(languageCode)};` : ''}
       window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("${
         invisible ? 'recaptcha-btn' : 'recaptcha-cont'
       }", {
         size: "${invisible ? 'invisible' : 'normal'}",
         callback: onVerify
       });
-      window.recaptchaVerifier.render();
+      window.recaptchaVerifier.render().then(function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'load' }));
+      }).catch(onError);
     }
     function onError() {
       window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -187,6 +188,7 @@ export default function FirebaseRecaptcha(props: Props) {
         invisible
       )}
       onError={onError}
+      onHttpError={onError}
       onMessage={(event) => {
         const data = JSON.parse(event.nativeEvent.data);
         switch (data.type) {

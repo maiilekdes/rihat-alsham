@@ -19,8 +19,8 @@ export type RootStackParamList = {
   // `reason` lets the sign-in screen explain why it appeared — asking someone
   // to sign in is much easier to accept when it names what they get back.
   Login: { reason?: 'checkout' | 'orders' | 'profile' } | undefined;
-  Otp: { verificationId: string; e164Phone: string };
-  AddPhone: undefined;
+  Otp: { verificationId: string; e164Phone: string; reason?: 'checkout' | 'orders' | 'profile' };
+  AddPhone: { reason?: 'checkout' | 'orders' | 'profile' } | undefined;
   Home: undefined;
   ItemDetail: { itemId: string };
   Cart: undefined;
@@ -50,7 +50,7 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Login"
           component={LoginScreen}
-          options={{ headerShown: false, presentation: 'modal' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen name="Otp" component={OtpScreen} options={{ title: '' }} />
         <Stack.Screen name="AddPhone" component={AddPhoneScreen} options={{ title: '' }} />

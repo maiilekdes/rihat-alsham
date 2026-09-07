@@ -67,7 +67,20 @@ export default class FirebaseRecaptchaVerifierModal
     return 'recaptcha';
   }
 
+  private verificationTimer?: ReturnType<typeof setTimeout>;
+
+  componentWillUnmount() {
+    clearTimeout(this.verificationTimer);
+    this.state.reject?.(new CodedError('ERR_FIREBASE_RECAPTCHA_CANCEL', 'Verification closed'));
+  }
+
   async verify(): Promise<string> {
+    this.state.reject?.(new CodedError('ERR_FIREBASE_RECAPTCHA_CANCEL', 'Verification restarted'));
+    clearTimeout(this.verificationTimer);
+    this.verificationTimer = setTimeout(() => {
+      this.state.reject?.(new CodedError('ERR_FIREBASE_RECAPTCHA_TIMEOUT', 'Verification timed out'));
+      this.setState({ visible: false, invisibleVerify: false, resolve: undefined, reject: undefined });
+    }, 120000);
     return new Promise((resolve, reject) => {
       if (this.props.attemptInvisibleVerification) {
         this.setState({ invisibleVerify: true, resolve, reject });
@@ -93,14 +106,16 @@ export default class FirebaseRecaptchaVerifierModal
   };
 
   private onError = () => {
+    clearTimeout(this.verificationTimer);
     const { reject } = this.state;
     if (reject) {
       reject(new CodedError('ERR_FIREBASE_RECAPTCHA_ERROR', 'Failed to load reCAPTCHA'));
     }
-    this.setState({ visible: false, invisibleVerify: false });
+    this.setState({ visible: false, invisibleVerify: false, resolve: undefined, reject: undefined });
   };
 
   private onVerify = (token: string) => {
+    clearTimeout(this.verificationTimer);
     const { resolve } = this.state;
     if (resolve) {
       resolve(token);
@@ -110,15 +125,18 @@ export default class FirebaseRecaptchaVerifierModal
       invisibleVerify: false,
       invisibleLoaded: false,
       invisibleKey: state.invisibleKey + 1,
+      resolve: undefined,
+      reject: undefined,
     }));
   };
 
   cancel = () => {
+    clearTimeout(this.verificationTimer);
     const { reject } = this.state;
     if (reject) {
       reject(new CodedError('ERR_FIREBASE_RECAPTCHA_CANCEL', 'Cancelled by user'));
     }
-    this.setState({ visible: false });
+    this.setState({ visible: false, resolve: undefined, reject: undefined });
   };
 
   onDismiss = () => {
@@ -162,13 +180,13 @@ export default class FirebaseRecaptchaVerifierModal
               </View>
             </View>
             <View style={styles.content}>
-              <FirebaseRecaptcha
+              {visible && <FirebaseRecaptcha
                 {...otherProps}
                 style={styles.content}
                 onLoad={this.onVisibleLoad}
                 onError={this.onError}
                 onVerify={this.onVerify}
-              />
+              />}
               {!visibleLoaded ? (
                 <View style={styles.loader}>
                   <ActivityIndicator size="large" />

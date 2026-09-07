@@ -8,16 +8,17 @@ CREATE TYPE user_role AS ENUM ('customer', 'staff', 'owner');
 
 CREATE TABLE users (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone             VARCHAR(20) UNIQUE NOT NULL,       -- E.164, e.g. +9665XXXXXXXX
+  phone             VARCHAR(20) UNIQUE,                -- NULL until verified; E.164, e.g. +9665XXXXXXXX
   phone_verified    BOOLEAN NOT NULL DEFAULT FALSE,
   full_name         VARCHAR(120),
   email             VARCHAR(160),
   auth_provider     VARCHAR(20) NOT NULL DEFAULT 'phone', -- phone | google | facebook
-  provider_uid      VARCHAR(160),                       -- external auth uid, if any
+  provider_uid      VARCHAR(160) UNIQUE,                       -- external auth uid, if any
   role              user_role NOT NULL DEFAULT 'customer',
   preferred_lang    VARCHAR(5) NOT NULL DEFAULT 'ar',    -- ar | en
   push_token        VARCHAR(255),
-  loyalty_points    INT NOT NULL DEFAULT 0,   -- see loyalty_ledger below for the auditable history behind this number
+  loyalty_points    INT NOT NULL DEFAULT 0 CHECK (loyalty_points >= 0),   -- see loyalty_ledger below for the auditable history behind this number
+  deleted_at        TIMESTAMPTZ,             -- account deleted by the customer: the row is anonymised, not removed, because orders must be retained for tax
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );

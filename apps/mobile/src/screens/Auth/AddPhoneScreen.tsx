@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
+import { authErrorMessage, isAuthCancellation } from '../../lib/authErrors';
+import { normalizeSaudiPhone, normalizeDigits } from '../../lib/phone';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme';
 
@@ -8,7 +13,9 @@ import { colors } from '../../theme';
 // phone yet — blocks entry into the main app until this step completes,
 // since delivery drivers and staff must be able to reach the customer directly.
 export default function AddPhoneScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { params } = useRoute<RouteProp<RootStackParamList, 'AddPhone'>>();
   const { sendOtp, linkPhone } = useAuth();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -16,12 +23,11 @@ export default function AddPhoneScreen() {
   const [loading, setLoading] = useState(false);
 
   async function handleSendOtp() {
-    const e164 = phone.startsWith('+') ? phone : `+966${phone.replace(/^0/, '')}`;
     setLoading(true);
     try {
-      setVerificationId(await sendOtp(e164));
-    } catch {
-      Alert.alert('Error', 'Could not send verification code.');
+      setVerificationId(await sendOtp(normalizeSaudiPhone(phone)));
+    } catch (error) {
+      if (!isAuthCancellation(error)) Alert.alert(t('login'), authErrorMessage(error, i18n.language === 'ar'));
     } finally {
       setLoading(false);
     }
@@ -31,8 +37,9 @@ export default function AddPhoneScreen() {
     setLoading(true);
     try {
       await linkPhone(verificationId!, code);
-    } catch {
-      Alert.alert('Error', 'Invalid code, or this number is already in use.');
+      navigation.reset({ index: 0, routes: [{ name: params?.reason === 'checkout' ? 'Checkout' : params?.reason === 'orders' ? 'OrderHistory' : params?.reason === 'profile' ? 'Profile' : 'Home' }] });
+    } catch (error) {
+      Alert.alert(t('login'), authErrorMessage(error, i18n.language === 'ar'));
     } finally {
       setLoading(false);
     }
@@ -46,7 +53,7 @@ export default function AddPhoneScreen() {
         <>
           <View style={styles.phoneRow}>
             <Text style={styles.countryCode}>+966</Text>
-            <TextInput style={styles.input} keyboardType="phone-pad" value={phone} onChangeText={setPhone} maxLength={10} />
+            <TextInput style={styles.input} keyboardType="phone-pad" value={phone} onChangeText={setPhone} maxLength={20} />
           </View>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleSendOtp} disabled={loading || phone.length < 9}>
             {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>{t('sendCode')}</Text>}
@@ -54,8 +61,8 @@ export default function AddPhoneScreen() {
         </>
       ) : (
         <>
-          <TextInput style={styles.codeInput} keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} textAlign="center" />
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleVerify} disabled={loading || code.length < 4}>
+          <TextInput style={styles.codeInput} keyboardType="number-pad" maxLength={6} value={code} onChangeText={(value) => setCode(normalizeDigits(value))} textAlign="center" />
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleVerify} disabled={loading || code.length !== 6}>
             {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>{t('verifyCode')}</Text>}
           </TouchableOpacity>
         </>

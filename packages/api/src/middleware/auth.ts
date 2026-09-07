@@ -34,29 +34,50 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
       ? 'apple'
       : 'phone';
 
-    const { rows } = await pool.query(
-      `INSERT INTO users (phone, phone_verified, auth_provider, provider_uid, email)
-       VALUES (COALESCE($1, ''), $2, $3, $4, $5)
-       ON CONFLICT (phone) DO UPDATE SET provider_uid = EXCLUDED.provider_uid
-       RETURNING id, role, phone, phone_verified`,
-      [phone, !!phone, provider, decoded.uid, decoded.email ?? null]
-    );
-
-    // Google/Facebook sign-ins may not carry a phone number yet — in that case
-    // we still resolve the user by firebase uid so the "add phone" flow works.
-    let user = rows[0];
-    if (!phone) {
-      const byUid = await pool.query(
-        `SELECT id, role, phone, phone_verified FROM users WHERE provider_uid = $1`,
-        [decoded.uid]
+    // Firebase UID is the account identity. Never overwrite another account's
+    // UID on a phone conflict; social accounts without a phone must stay distinct.
+    const client = await pool.connect();
+    let user;
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [decoded.uid]);
+      const existing = await client.query(
+        'SELECT id FROM users WHERE provider_uid = $1 FOR UPDATE', [decoded.uid]
       );
-      user = byUid.rows[0] ?? user;
+      let id = existing.rows[0]?.id;
+      if (!id && phone) {
+        // Claim a pre-created staff/customer row only if it has no Firebase UID.
+        const claimed = await client.query(
+          `UPDATE users SET provider_uid = $1 WHERE phone = $2 AND provider_uid IS NULL RETURNING id`,
+          [decoded.uid, phone]
+        );
+        id = claimed.rows[0]?.id;
+      }
+      const { rows } = id
+        ? await client.query(
+            `UPDATE users SET phone = $2, phone_verified = $3,
+             email = COALESCE($4, email), updated_at = now()
+             WHERE id = $1 RETURNING id, role, phone, phone_verified`,
+            [id, phone, !!phone, decoded.email ?? null]
+          )
+        : await client.query(
+            `INSERT INTO users (phone, phone_verified, auth_provider, provider_uid, email)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id, role, phone, phone_verified`,
+            [phone, !!phone, provider, decoded.uid, decoded.email ?? null]
+          );
+      user = rows[0];
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
 
     req.user = {
       id: user.id,
       role: user.role,
-      phone: user.phone,
+      phone: user.phone ?? '',
       phoneVerified: user.phone_verified,
     };
     next();

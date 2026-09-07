@@ -34,7 +34,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5E0B1"
+        "backgroundColor": "#BC4F09"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
@@ -46,7 +46,9 @@
     },
     "plugins": [
       "expo-localization",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-google-signin/google-signin",
+      "expo-apple-authentication"
     ],
     "extra": {
       "apiUrl": "https://api-production-032e.up.railway.app",
@@ -63,9 +65,8 @@
         "projectId": "dee5fe37-ffc1-4b17-8ee1-0b2b72aa250e"
       },
       "auth": {
-        "googleWebClientId": "REPLACE_WITH_WEB_CLIENT_ID",
-        "googleIosClientId": "REPLACE_WITH_IOS_CLIENT_ID",
-        "googleAndroidClientId": "REPLACE_WITH_ANDROID_CLIENT_ID",
+        "googleWebClientId": "514910965480-6p0328177hn56sbld2gkhmpo12rqlo90.apps.googleusercontent.com",
+        "googleIosClientId": "514910965480-jfrc6405njb9bo4qqdu0u1unihmomcsg.apps.googleusercontent.com",
         "facebookAppId": "REPLACE_WITH_FACEBOOK_APP_ID"
       }
     },
