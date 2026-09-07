@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { LEGAL_DOCS, findDoc, BUSINESS_DETAILS } from '../legal/content';
+import {
+  LEGAL_DOCS,
+  findDoc,
+  BUSINESS_DETAILS,
+  LEGAL_DOCUMENTS_READY,
+  MISSING_BUSINESS_DETAILS,
+} from '../legal/content';
 
 /**
  * Public legal pages. Deliberately unauthenticated — the App Store needs to
@@ -11,6 +17,29 @@ import { LEGAL_DOCS, findDoc, BUSINESS_DETAILS } from '../legal/content';
  * privacy problem by pulling in a font or a script from someone else.
  */
 export const legalRouter = Router();
+
+// A public policy containing TODO values can mislead customers and App Store
+// reviewers. Keep every legal route closed until the business details are
+// verified and filled in; the missing field names are logged server-side only.
+legalRouter.use((req, res, next) => {
+  if (LEGAL_DOCUMENTS_READY) return next();
+  console.warn(
+    `[legal] Draft requested at ${req.originalUrl}; missing: ${MISSING_BUSINESS_DETAILS.join(', ')}`
+  );
+  const english = req.query.lang === 'en';
+  return res
+    .status(503)
+    .type('html')
+    .send(
+      `<!doctype html><html lang="${english ? 'en' : 'ar'}" dir="${english ? 'ltr' : 'rtl'}"><head>` +
+        '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        `<title>${english ? 'Legal documents are being prepared' : 'المستندات النظامية قيد الإعداد'}</title>` +
+        '<style>body{max-width:42rem;margin:4rem auto;padding:0 1.25rem;font:18px/1.8 system-ui;color:#2C1B10;background:#FBF1DE}</style>' +
+        `</head><body><h1>${english ? 'Legal documents are being prepared' : 'المستندات النظامية قيد الإعداد'}</h1>` +
+        `<p>${english ? 'Please contact the restaurant by phone while these documents are completed.' : 'يرجى التواصل مع المطعم هاتفياً إلى حين اكتمال هذه المستندات.'}</p>` +
+        `<p><a href="tel:${BUSINESS_DETAILS.phone}">${BUSINESS_DETAILS.phone}</a></p></body></html>`
+    );
+});
 
 function page(title: string, body: string, lang: 'ar' | 'en') {
   const rtl = lang === 'ar';

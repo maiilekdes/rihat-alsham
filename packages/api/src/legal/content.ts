@@ -28,6 +28,17 @@ export const BUSINESS_DETAILS = {
   lastUpdated: '2026-09-07',
 };
 
+/**
+ * Do not expose draft legal pages containing placeholder business details.
+ * The mobile app and App Store listing can point at these routes only after
+ * every required value below has been replaced with a verified value.
+ */
+export const MISSING_BUSINESS_DETAILS = Object.entries(BUSINESS_DETAILS)
+  .filter(([, value]) => !value || value.startsWith('TODO_'))
+  .map(([key]) => key);
+
+export const LEGAL_DOCUMENTS_READY = MISSING_BUSINESS_DETAILS.length === 0;
+
 const B = BUSINESS_DETAILS;
 
 export type LegalDoc = { slug: string; titleAr: string; titleEn: string; ar: string; en: string };
@@ -92,7 +103,7 @@ ${DATA_TABLE_AR}
 <p>لا نشارك بياناتك مع أي جهة أخرى إلا إذا طلبت ذلك جهة نظامية مختصة.</p>
 
 <h2>٥. نقل البيانات خارج المملكة</h2>
-<p>تُخزَّن بعض البيانات على خوادم خارج المملكة العربية السعودية (هولندا، ومراكز بيانات Google). نعمل على مواءمة ذلك مع متطلبات نظام حماية البيانات الشخصية، وباستخدام التطبيق فإنك تقرّ بهذا النقل.</p>
+<p>تُعالَج بعض البيانات على خوادم خارج المملكة العربية السعودية (هولندا، ومراكز بيانات Google). يجب توثيق المسوّغ والضمانات النظامية لكل عملية نقل وفق المادة ٢٩ من نظام حماية البيانات الشخصية ولائحة نقل البيانات قبل نشر هذه السياسة.</p>
 
 <h2>٦. مدة الحفظ</h2>
 <p>يُحتفظ بسجلات الطلبات والفواتير للمدة التي تفرضها الأنظمة الضريبية والتجارية. تُحذف بقية بياناتك عند حذف حسابك.</p>
@@ -136,7 +147,7 @@ ${DATA_TABLE_EN}
 <p>We share your data with no one else unless a competent authority lawfully requires it.</p>
 
 <h2>5. Transfers outside Saudi Arabia</h2>
-<p>Some data is stored on servers outside the Kingdom (the Netherlands, and Google data centres). We are working to align this with the Personal Data Protection Law's transfer requirements. By using the app you acknowledge this transfer.</p>
+<p>Some data is processed on servers outside the Kingdom (the Netherlands and Google data centres). The legal basis and safeguards for each transfer must be documented under Article 29 of the Personal Data Protection Law and its Transfer Regulation before this policy is published.</p>
 
 <h2>6. Retention</h2>
 <p>Order records and invoices are kept for the period required by Saudi tax and commercial law. The rest of your data is deleted when you delete your account.</p>

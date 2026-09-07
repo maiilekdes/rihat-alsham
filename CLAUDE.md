@@ -148,12 +148,10 @@ prefix, so it was counting order fetches, chat polls and inline photos).
 `npm run db:migrate` applies `db/schema.sql` **wholesale** and is for creating a
 fresh database only. Never run it against the live database.
 
-Incremental changes are numbered files in `db/migrations/`. Only
-`001_auth_identity.sql` is applied automatically — the API's Dockerfile CMD runs
-`scripts/migrate-auth.js` before starting the server, and that script hardcodes
-that one filename. **Any newer migration must be applied by hand and the script
-extended**, or it will silently never run. `002_loyalty_points_guard.sql` is in
-this state.
+Incremental changes are numbered files in `db/migrations/`. The API's Dockerfile
+CMD runs `scripts/migrate-auth.js` before starting the server. Keep that script's
+ordered list in sync when adding a migration; all listed migrations must be safe
+to run again after a container restart.
 
 ## Deployment
 
